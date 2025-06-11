@@ -1,0 +1,122 @@
+[
+  {
+    "start_time": 0,
+    "end_time": 0.3334013605442177,
+    "peak_time": 0.08340136054421769,
+    "peak_amplitude": 0.055694580078125,
+    "chunk_index": 0,
+    "local_index": 3678
+  },
+  {
+    "start_time": 0,
+    "end_time": 0.38573696145124714,
+    "peak_time": 0.13573696145124717,
+    "peak_amplitude": -0.0386962890625,
+    "chunk_index": 0,
+    "local_index": 5986
+  },
+  {
+    "start_time": 0.0027891156462585,
+    "end_time": 0.5027891156462585,
+    "peak_time": 0.2527891156462585,
+    "peak_amplitude": -0.12945556640625,
+    "chunk_index": 0,
+    "local_index": 11148
+  },
+  {
+    "start_time": 0.19136054421768706,
+    "end_time": 0.6913605442176871,
+    "peak_time": 0.44136054421768706,
+    "peak_amplitude": -0.113800048828125,
+    "chunk_index": 0,
+    "local_index": 19464
+  },
+  {
+    "start_time": 0.24473922902494333,
+    "end_time": 0.7447392290249433,
+    "peak_time": 0.49473922902494333,
+    "peak_amplitude": -0.08013916015625,
+    "chunk_index": 0,
+    "local_index": 21818
+  },
+  {
+    "start_time": 0.4691383219954649,
+    "end_time": 0.9691383219954649,
+    "peak_time": 0.7191383219954649,
+    "peak_amplitude": -0.048187255859375,
+    "chunk_index": 0,
+    "local_index": 31714
+  },
+  {
+    "start_time": 0.6124943310657597,
+    "end_time": 1.1124943310657596,
+    "peak_time": 0.8624943310657597,
+    "peak_amplitude": -0.049560546875,
+    "chunk_index": 0,
+    "local_index": 38036
+  },
+  {
+    "start_time": 0.8067573696145125,
+    "end_time": 1.3067573696145125,
+    "peak_time": 1.0567573696145125,
+    "peak_amplitude": -0.130523681640625,
+    "chunk_index": 0,
+    "local_index": 46603
+  },
+  {
+    "start_time": 1.0329024943310658,
+    "end_time": 1.5329024943310658,
+    "peak_time": 1.2829024943310658,
+    "peak_amplitude": -0.12451171875,
+    "chunk_index": 0,
+    "local_index": 56576
+  },
+  {
+    "start_time": 1.120453514739229,
+    "end_time": 1.620453514739229,
+    "peak_time": 1.370453514739229,
+    "peak_amplitude": -0.099639892578125,
+    "chunk_index": 0,
+    "local_index": 60437
+  },
+  {
+    "start_time": 1.1728571428571428,
+    "end_time": 1.6728571428571428,
+    "peak_time": 1.4228571428571428,
+    "peak_amplitude": -0.008453369140625,
+    "chunk_index": 0,
+    "local_index": 62748
+  },
+  {
+    "start_time": 1.7359637188208616,
+    "end_time": 2.2359637188208614,
+    "peak_time": 1.9859637188208616,
+    "peak_amplitude": -0.02777099609375,
+    "chunk_index": 0,
+    "local_index": 87581
+  },
+  {
+    "start_time": 1.859909297052154,
+    "end_time": 2.359909297052154,
+    "peak_time": 2.109909297052154,
+    "peak_amplitude": -0.012054443359375,
+    "chunk_index": 0,
+    "local_index": 93047
+  },
+  {
+    "start_time": 1.923265306122449,
+    "end_time": 2.423265306122449,
+    "peak_time": 2.173265306122449,
+    "peak_amplitude": -0.017120361328125,
+    "chunk_index": 0,
+    "local_index": 95841
+  },
+  {
+    "start_time": 1.9962358276643992,
+    "end_time": 2.496235827664399,
+    "peak_time": 2.246235827664399,
+    "peak_amplitude": -0.019134521484375,
+    "chunk_index": 0,
+    "local_index": 99059
+  }
+]

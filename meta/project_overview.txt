@@ -1,0 +1,72 @@
+Project: Gunshot Detection Using Machine Learning for Infrasound Data Analysis
+
+Overview:
+This research project is part of a broader conservation effort in partnership with the Elephants, Rhinos & People (ERP) initiative. The primary objective is to develop machine learning systems that can detect, localize, and classify acoustic events using infrasound data, with a focus on protecting endangered wildlife such as elephants from human threats.
+
+Group Hypothesis:
+Using infrasound (and potentially other cues) to detect, localize, and track elephants along with the same for human activity, will allow us to localize and track the elephants we want to protect and the potential unexpected human presence that can be a threat to them, allowing park rangers and land managers to keep the two separated and to respond to incidents where humans and elephants may come into conflict.
+
+Individual Hypothesis:
+A hybrid machine learning model using a CNN and traditional classifier can classify gunshots from labeled infrasound recordings with measurable accuracy.
+
+North Star Goal:
+Build a hybrid machine learning system for gunshot detection in infrasound data by combining a Convolutional Neural Network (CNN) trained on Mel spectrograms with a traditional classifier using handcrafted audio features such as MFCCs, zero-crossing rate, RMS energy, and spectral centroid. This fusion approach leverages both deep learning and signal-based techniques to improve classification accuracy and robustness in challenging, noisy environments where traditional methods may fall short.
+
+
+-Experimental Plan (8 weeks):
+
+- Week 1:
+  • Literature review on acoustic event detection and infrasound processing  
+  • Investigate how acoustic events are identified and classified in noisy environments  
+  • Explore what characteristics are typically extracted to enable classification
+  • Learn to use audio processing tools (e.g., librosa, Raven Pro)
+  • Brush up on Python and get comfortable with the tools and syntax I’ll be using  
+  • Set up project infrastructure  
+  • Review dataset structure  
+
+- Week 2:
+  • Begin research into machine learning and deep learning fundamentals; start practicing with basic models  
+  • Study examples of acoustic classification models  
+  • Begin experimenting with handcrafted feature extraction (MFCCs, ZCR, etc.)  
+  • Organize early feature outputs and troubleshoot consistency across samples  
+  • Continue exploring ERP/ELP tools and data formats  
+  • Use Edge TPU to run small-scale model training and practice basic ML workflows  
+
+- Week 3:
+  • Finalize and standardize feature extraction pipeline  
+  • Generate Mel spectrograms from labeled audio events  
+  • Begin training a traditional ML classifier on extracted features  
+  • Implement basic cross-validation to assess traditional classifier performance and detect signs of overfitting  
+  • Begin planning for comparative analysis of traditional and CNN models using evaluation tools like confusion matrices  
+
+- Week 4:
+  • Train a CNN on Mel spectrograms  
+  • Tune CNN architecture and data input format (augmentation, resizing, etc.)  
+  • Compare CNN performance to traditional classifier  
+  • Use confusion matrices to visualize and interpret classification results for both models  
+  • Start evaluating which inputs generalize better to noisy/unseen samples  
+  • Begin transitioning training to NFS resources for handling larger data workloads  
+
+- Week 5:
+  • Design and build late-fusion model architecture  
+  • Combine CNN and traditional classifier outputs into unified pipeline  
+  • Begin training hybrid model using shared validation/test sets  
+  • Log detailed metrics for hybrid versus standalone models  
+
+- Week 6:
+  • Perform hyperparameter tuning for all three models  
+  • Investigate potential ensemble techniques beyond late-fusion  
+  • Prepare ablation studies to test feature/component impact  
+  • Begin preparing visualizations of performance metrics  
+
+- Week 7:
+  • Evaluate final model using precision, recall, accuracy, F1 score, confusion matrix  
+  • Run full test set through hybrid model  
+  • Conduct failure analysis and categorize edge cases  
+
+- Week 8:
+  • Freeze best-performing model and document training process  
+  • Finalize visualizations and summary results  
+  • Prepare presentation, slides, and code repository for handoff  
+  • Reflect on limitations, future directions, and lessons learned  
+  • Write final report

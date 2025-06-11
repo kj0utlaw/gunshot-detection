@@ -1,0 +1,5 @@
+.DS_Store
+data/
+detected_clips/
+gunshots/
+*.zip
