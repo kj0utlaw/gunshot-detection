@@ -1,5 +1,9 @@
 .DS_Store
-data/
 detected_clips/
 gunshots/
+spike_detection_results/
 *.zip
+*.wav
+clip_index.csv
+dataset/clips/
+clip_index.csv
