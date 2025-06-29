@@ -4,22 +4,22 @@ import os # file paths
 import pandas as pd # reading CSV files
 from pathlib import Path # file paths
 
-# Converts audio clip to Mel spectrogram (shows frequency content over time)
+# Convert audio clip to Mel spectrogram (freq content over time)
 def generate_mel_spectrogram(audio_clip, sr, n_mels=64, n_fft=2048, hop_length=512):
     """
-    Takes an audio clip and converts it to a Mel spectrogram.
+    Convert audio clip to Mel spectrogram
 
     Inputs:
-        audio_clip: The audio data
-        sr: Sample rate of the audio
-        n_mels: Number of frequency bands (default: 64)
-        n_fft: Window size for analysis (default: 2048)
-        hop_length: Step size between windows (default: 512)
+        audio_clip: audio data
+        sr: sample rate
+        n_mels: freq bands (default: 64)
+        n_fft: window size (default: 2048)
+        hop_length: step size (default: 512)
 
     Returns:
-        A Mel spectrogram showing how sound frequencies change over time
+        Mel spectrogram (freq vs time)
     """
-    # Convert to Mel spectrogram (energy over time at different frequencies)
+    # Generate Mel spectrogram (energy over time at diff freqs)
     mel_spec = librosa.feature.melspectrogram(
         y=audio_clip,
         sr=sr,
@@ -33,19 +33,19 @@ def generate_mel_spectrogram(audio_clip, sr, n_mels=64, n_fft=2048, hop_length=5
 
     return mel_spec_db
 
-# Cleans audio by normalizing and removing silence
+# Clean audio (normalize + remove silence)
 def preprocess_audio(audio_clip, sr):
     """
-    Cleans up an audio clip by normalizing volume and removing silence.
+    Clean audio clip (normalize + trim silence)
 
     Inputs:
-        audio_clip: The audio data to clean
-        sr: Sample rate of the audio
+        audio_clip: audio to clean
+        sr: sample rate
 
     Returns:
         Cleaned audio clip
     """
-    # Normalize and scale to [-1, 1]
+    # Normalize to [-1, 1]
     audio_norm = librosa.util.normalize(audio_clip)
 
     # Remove silence
@@ -53,27 +53,27 @@ def preprocess_audio(audio_clip, sr):
 
     return audio_trimmed
 
-# Saves spectrogram as .npy file for fast loading
+# Save spectrogram as .npy file
 def save_spectrogram(spectrogram, output_path):
     """
-    Saves a spectrogram to a file.
+    Save spectrogram to file
 
     Inputs:
-        spectrogram: The spectrogram to save
-        output_path: Where to save the file
+        spectrogram: spectrogram to save
+        output_path: save location
     """
     # Save as .npy
     np.save(output_path, spectrogram)
 
-# Main function: process audio file & generate spectrogram for each clip
+# Main: process audio file & generate spectrograms for each clip
 def process_audio_file(audio_path, selection_table_path, output_dir="spectrograms"):
     """
-    Takes an audio file and selection table, then creates spectrograms for each clip.
+    Process audio file + selection table, create spectrograms for each clip
 
     Inputs:
-        audio_path: Path to the audio file
-        selection_table_path: Path to the CSV file with clip timestamps
-        output_dir: Where to save the spectrograms (default: "spectrograms")
+        audio_path: path to audio file
+        selection_table_path: path to CSV with clip timestamps
+        output_dir: save location (default: "spectrograms")
     """
     # Create output folder
     os.makedirs(output_dir, exist_ok=True)

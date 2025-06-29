@@ -1,8 +1,8 @@
 """
 Feature extraction module for gunshot detection system.
 
-This module extracts both handcrafted features (MFCCs, ZCR, RMS, spectral centroid)
-and generates Mel spectrograms for CNN input from audio clips in the dataset.
+Extracts handcrafted features (MFCCs, ZCR, RMS, spectral centroid)
+and generates Mel spectrograms for CNN input from audio clips.
 """
 
 import numpy as np
@@ -16,11 +16,11 @@ import json
 from typing import Dict, List, Tuple, Optional
 import warnings
 
-# Suppress librosa warnings for cleaner output
+# Suppress librosa warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='librosa')
 
 class FeatureExtractor:
-    """Extracts features from audio clips for gunshot detection."""
+    """Extract features from audio clips for gunshot detection"""
     
     def __init__(self, 
                  clips_dir: str = "dataset/clips",
@@ -33,18 +33,18 @@ class FeatureExtractor:
                  save_spectrograms: bool = True,
                  spectrogram_format: str = "numpy"):
         """
-        Initialize the feature extractor.
+        Initialize feature extractor
         
         Args:
-            clips_dir: Directory containing audio clips
-            output_dir: Directory to save extracted features
-            sample_rate: Target sample rate for audio processing
-            n_mfcc: Number of MFCC coefficients to extract
-            n_mels: Number of mel frequency bins for spectrograms
+            clips_dir: dir with audio clips
+            output_dir: dir to save features
+            sample_rate: target sample rate
+            n_mfcc: MFCC coefficients count
+            n_mels: mel freq bins for spectrograms
             n_fft: FFT window size
-            hop_length: Number of samples between successive frames
-            save_spectrograms: Whether to save spectrograms as files
-            spectrogram_format: Format to save spectrograms ('numpy', 'png', or 'both')
+            hop_length: samples between frames
+            save_spectrograms: save spectrograms as files
+            spectrogram_format: format ('numpy', 'png', or 'both')
         """
         self.clips_dir = Path(clips_dir)
         self.output_dir = Path(output_dir)
@@ -56,7 +56,7 @@ class FeatureExtractor:
         self.save_spectrograms = save_spectrograms
         self.spectrogram_format = spectrogram_format
         
-        # Create output directories
+        # Create output dirs
         self.output_dir.mkdir(exist_ok=True)
         if self.save_spectrograms:
             (self.output_dir / "spectrograms").mkdir(exist_ok=True)
@@ -67,50 +67,50 @@ class FeatureExtractor:
     
     def extract_handcrafted_features(self, audio: np.ndarray, sr: int) -> Dict[str, float]:
         """
-        Extract handcrafted features from audio clip.
+        Extract handcrafted features from audio clip
         
         Args:
-            audio: Audio waveform as numpy array
-            sr: Sample rate
+            audio: audio waveform array
+            sr: sample rate
             
         Returns:
-            Dictionary of extracted features
+            Dict of extracted features
         """
-    features = {}
+        features = {}
 
-        # MFCCs (captures tone & timbre)
+        # MFCCs (tone & timbre)
         mfcc = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=self.n_mfcc)
         for i, coef in enumerate(mfcc):
             features[f'mfcc_{i+1}'] = np.mean(coef)
             features[f'mfcc_{i+1}_std'] = np.std(coef)
         
-        # Zero-crossing rate (helps with volume and frequency characteristics)
+        # Zero-crossing rate (volume & freq characteristics)
         zcr = librosa.feature.zero_crossing_rate(audio)
         features['zcr_mean'] = np.mean(zcr)
         features['zcr_std'] = np.std(zcr)
         
-        # Root Mean Square energy (loudness)
+        # RMS energy (loudness)
         rms = librosa.feature.rms(y=audio)
         features['rms_mean'] = np.mean(rms)
         features['rms_std'] = np.std(rms)
         
-        # Spectral centroid (brightness / how high-pitched)
+        # Spectral centroid (brightness / pitch)
         centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)
         features['centroid_mean'] = np.mean(centroid)
         features['centroid_std'] = np.std(centroid)
         
-        # Spectral bandwidth (frequency spread)
+        # Spectral bandwidth (freq spread)
         bandwidth = librosa.feature.spectral_bandwidth(y=audio, sr=sr)
         features['bandwidth_mean'] = np.mean(bandwidth)
         features['bandwidth_std'] = np.std(bandwidth)
         
-        # Spectral rolloff (frequency below which 85% of energy is contained)
+        # Spectral rolloff (freq below 85% energy)
         rolloff = librosa.feature.spectral_rolloff(y=audio, sr=sr)
         features['rolloff_mean'] = np.mean(rolloff)
         features['rolloff_std'] = np.std(rolloff)
         
         # Additional features for gunshot detection
-        # Spectral contrast (captures spectral peaks and valleys)
+        # Spectral contrast (spectral peaks/valleys)
         contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
         features['contrast_mean'] = np.mean(contrast)
         features['contrast_std'] = np.std(contrast)
@@ -124,14 +124,14 @@ class FeatureExtractor:
     
     def generate_mel_spectrogram(self, audio: np.ndarray, sr: int) -> np.ndarray:
         """
-        Generate Mel spectrogram from audio clip.
+        Generate Mel spectrogram from audio clip
         
         Args:
-            audio: Audio waveform as numpy array
-            sr: Sample rate
+            audio: audio waveform array
+            sr: sample rate
             
         Returns:
-            Mel spectrogram as numpy array
+            Mel spectrogram array
         """
         # Generate mel spectrogram
         mel_spec = librosa.feature.melspectrogram(
@@ -149,12 +149,12 @@ class FeatureExtractor:
     
     def save_spectrogram(self, spectrogram: np.ndarray, filename: str, base_name: str):
         """
-        Save spectrogram in specified format.
+        Save spectrogram in specified format
         
         Args:
-            spectrogram: Mel spectrogram array
-            filename: Original audio filename
-            base_name: Base name without extension
+            spectrogram: mel spectrogram array
+            filename: original audio filename
+            base_name: base name without extension
         """
         if not self.save_spectrograms:
             return
@@ -180,14 +180,14 @@ class FeatureExtractor:
     
     def process_single_clip(self, clip_path: Path, label: str) -> Optional[Dict]:
         """
-        Process a single audio clip and extract features.
+        Process single audio clip and extract features
         
         Args:
-            clip_path: Path to audio clip
-            label: Label for the clip
+            clip_path: path to audio clip
+            label: clip label
             
         Returns:
-            Dictionary containing features and metadata, or None if processing failed
+            Dict with features and metadata, or None if failed
         """
         try:
             # Load audio
@@ -218,13 +218,13 @@ class FeatureExtractor:
     
     def extract_features_from_dataset(self, clip_index_path: str = "dataset/clip_index.csv") -> str:
         """
-        Extract features from all clips in the dataset.
+        Extract features from all clips in dataset
         
         Args:
-            clip_index_path: Path to the clip index CSV file
+            clip_index_path: path to clip index CSV
             
         Returns:
-            Path to the output features CSV file
+            Path to output features CSV
         """
         # Load clip index
         clip_index = pd.read_csv(clip_index_path)
@@ -278,7 +278,7 @@ class FeatureExtractor:
             return ""
     
     def _save_feature_statistics(self, df: pd.DataFrame):
-        """Save statistics about the extracted features."""
+        """Save statistics about extracted features"""
         stats = {
             'total_clips': len(df),
             'labels': df['label'].value_counts().to_dict(),
@@ -296,7 +296,7 @@ class FeatureExtractor:
 
 
 def main():
-    """Main function for command-line usage."""
+    """Main function for command-line usage"""
     import argparse
     
     parser = argparse.ArgumentParser(description="Extract features from audio clips")

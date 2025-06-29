@@ -1,19 +1,19 @@
-import numpy as np
-import librosa
-import soundfile as sf
-from typing import List, Tuple, Optional, Generator, Dict, Any
+import numpy as np 
+import librosa # audio processing
+import soundfile as sf # read audio files
+from typing import List, Tuple, Optional, Generator, Dict, Any # type hints
 import logging
 from dataclasses import dataclass, asdict
 from pathlib import Path
 import os
-from tqdm import tqdm
-import multiprocessing as mp
-from concurrent.futures import ProcessPoolExecutor
-import json
+from tqdm import tqdm # progress bar
+import multiprocessing as mp # parallel processing
+from concurrent.futures import ProcessPoolExecutor # parallel processing
+import json 
 from datetime import datetime
-from scipy import signal
+from scipy import signal # find peaks
 
-# Set up logging with more detail
+# Set up logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -22,58 +22,58 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SpikeEvent:
-    """Represents a detected spike event with its metadata."""
-    start_time: float  # Start time in seconds
-    end_time: float    # End time in seconds
-    peak_time: float   # Time of peak amplitude
-    peak_amplitude: float  # Peak amplitude value
-    chunk_index: int   # Index of the chunk where spike was found
-    local_index: int   # Index within the chunk
+    """Holds spike event data"""
+    start_time: float  # spike start time (sec)
+    end_time: float    # spike end time (sec)
+    peak_time: float   # exact peak time (sec)
+    peak_amplitude: float  # peak amplitude value
+    chunk_index: int   # chunk index where found
+    local_index: int   # position within chunk
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
+        """Convert to dict for JSON save"""
         return asdict(self)
 
 class StreamingSpikeDetector:
     def __init__(self, save_clips: bool = False, chunk_duration: float = 10.0):
         """
-        Initialize streaming spike detector with configurable parameters.
+        Initialize spike detector
         
         Args:
-            save_clips: Whether to save individual audio clips (default: False)
-            chunk_duration: Duration of each processing chunk in seconds (default: 10.0)
+            save_clips: save individual clips or not
+            chunk_duration: chunk length (sec)
         """
-        # Fixed parameters
-        self.sample_rate = 44100
-        self.clip_duration = 0.5  # 500ms clips
-        self.chunk_duration = chunk_duration  # Reduced from 60.0 to 10.0 seconds
+        # Core settings
+        self.sample_rate = 44100 # 44.1 kHz
+        self.clip_duration = 0.5  # 500ms clips around spikes
+        self.chunk_duration = chunk_duration  # changed from 60s to 10s for memory
         self.rms_window = int(0.02 * self.sample_rate)  # 20ms RMS window
-        self.smooth_window = int(0.5 * self.sample_rate)  # 500ms smoothing window
+        self.smooth_window = int(0.5 * self.sample_rate)  # 500ms smoothing
         
-        # Derived parameters
+        # Derived values
         self.clip_samples = int(self.clip_duration * self.sample_rate)
         self.chunk_samples = int(self.chunk_duration * self.sample_rate)
         
-        # Buffer for handling spikes that cross chunk boundaries
+        # Buffer for cross-chunk spikes
         self.buffer = np.array([])
         self.buffer_duration = self.clip_duration
         
-        # Output configuration
+        # Output settings
         self.save_clips = save_clips
         if self.save_clips:
             self.output_dir = Path("detected_clips")
             self.output_dir.mkdir(parents=True, exist_ok=True)
         
     def _compute_rms_vectorized(self, audio: np.ndarray) -> np.ndarray:
-        """Compute short-time RMS energy using vectorized operations."""
+        """Compute RMS energy (vectorized for speed)"""
         try:
-            # Ensure audio is float32
+            # Use float32 for efficiency
             audio = audio.astype(np.float32)
             
-            # Pad audio to handle edge cases
+            # Pad for edge handling
             padded = np.pad(audio, (self.rms_window//2, self.rms_window//2), mode='edge')
             
-            # Use convolution for efficient RMS computation
+            # Fast RMS via convolution
             squared = padded ** 2
             rms = np.sqrt(np.convolve(squared, np.ones(self.rms_window)/self.rms_window, mode='valid'))
             
@@ -84,15 +84,15 @@ class StreamingSpikeDetector:
             return np.array([], dtype=np.float32)
     
     def _compute_baseline_vectorized(self, rms: np.ndarray) -> np.ndarray:
-        """Compute smoothed baseline using vectorized operations."""
+        """Compute smoothed baseline (moving avg)"""
         try:
-            # Ensure RMS is float32
+            # Use float32
             rms = rms.astype(np.float32)
             
-            # Pad RMS for edge handling
+            # Pad for edge handling
             padded = np.pad(rms, (self.smooth_window//2, self.smooth_window//2), mode='edge')
             
-            # Use convolution for efficient moving average
+            # Fast moving avg via convolution
             baseline = np.convolve(padded, np.ones(self.smooth_window)/self.smooth_window, mode='valid')
             
             return baseline.astype(np.float32)
@@ -103,42 +103,42 @@ class StreamingSpikeDetector:
     
     def _detect_spikes_vectorized(self, audio: np.ndarray) -> List[int]:
         """
-        Detect spikes using vectorized contrast-based method.
+        Find spikes using RMS vs baseline contrast
         
         Args:
-            audio: Audio chunk array
+            audio: audio chunk to analyze
             
         Returns:
-            List of sample indices where spikes occur
+            List of spike sample indices
         """
         try:
-            # Ensure audio is float32
+            # Use float32
             audio = audio.astype(np.float32)
             
             # Normalize audio
             audio = librosa.util.normalize(audio)
             
-            # Compute RMS energy and baseline using vectorized operations
+            # Get RMS and baseline
             rms = self._compute_rms_vectorized(audio)
             baseline = self._compute_baseline_vectorized(rms)
             
-            # Ensure shapes match
+            # Match lengths
             min_len = min(len(rms), len(baseline))
             rms = rms[:min_len]
             baseline = baseline[:min_len]
             
-            # Compute contrast
+            # Calculate contrast (RMS - baseline)
             contrast = rms - baseline
             
-            # Clean NaNs
+            # Clean NaN values
             contrast[np.isnan(contrast)] = 0
             
-            # Find peaks using scipy.signal.find_peaks with more sensitive criteria
+            # Find peaks (good settings for gunshots)
             peaks, _ = signal.find_peaks(
                 contrast,
-                height=0.01,  # Lower height threshold for better sensitivity
-                distance=int(0.05 * self.sample_rate),  # Shorter minimum distance (50ms)
-                prominence=0.005  # Lower prominence threshold
+                height=0.01,  # min height
+                distance=int(0.05 * self.sample_rate),  # min 50ms between peaks
+                prominence=0.005  # min prominence
             )
             
             return peaks.tolist()
@@ -148,7 +148,7 @@ class StreamingSpikeDetector:
             return []
     
     def _get_chunk_generator(self, audio_path: str) -> Generator[np.ndarray, None, None]:
-        """Create a generator that yields audio chunks."""
+        """Generator for streaming audio chunks"""
         logger.info(f"Starting to process file: {audio_path}")
         
         try:
@@ -157,16 +157,16 @@ class StreamingSpikeDetector:
             duration = info.duration
             logger.info(f"Audio duration: {duration:.2f} seconds")
             
-            # Calculate number of samples per chunk
+            # Calc samples per chunk
             samples_per_chunk = int(self.chunk_duration * info.samplerate)
             
-            # Open file for streaming
+            # Stream chunks
             with sf.SoundFile(audio_path) as audio_file:
                 chunk_count = 0
                 while True:
-                    # Read chunk
+                    # Read next chunk
                     chunk = audio_file.read(samples_per_chunk)
-                    if len(chunk) == 0:  # End of file
+                    if len(chunk) == 0:  # EOF
                         break
                         
                     chunk_count += 1
@@ -181,13 +181,13 @@ class StreamingSpikeDetector:
                       chunk: np.ndarray, 
                       chunk_index: int,
                       chunk_start_time: float) -> List[SpikeEvent]:
-        """Process a single chunk of audio."""
+        """Process chunk and find spikes"""
         try:
-            # Combine buffer with current chunk
+            # Add prev chunk buffer if exists
             if len(self.buffer) > 0:
                 chunk = np.concatenate([self.buffer, chunk])
             
-            # Detect spikes using vectorized method
+            # Find spikes in chunk
             peaks = self._detect_spikes_vectorized(chunk)
             
             # Create spike events
@@ -206,7 +206,7 @@ class StreamingSpikeDetector:
                     local_index=peak
                 ))
             
-            # Update buffer
+            # Update buffer for next chunk
             buffer_samples = int(self.buffer_duration * self.sample_rate)
             self.buffer = chunk[-buffer_samples:] if len(chunk) > buffer_samples else chunk
             
@@ -218,16 +218,16 @@ class StreamingSpikeDetector:
     
     def process_file(self, audio_path: str) -> List[SpikeEvent]:
         """
-        Process an audio file in chunks.
+        Process entire audio file and find all spikes
         
         Args:
-            audio_path: Path to audio file
+            audio_path: path to audio file
             
         Returns:
-            List of all detected spike events
+            List of all spike events
         """
         try:
-            # Get total duration for progress bar
+            # Get file info for progress
             info = sf.info(audio_path)
             duration = info.duration
             total_chunks = int(np.ceil(duration / self.chunk_duration))
@@ -237,13 +237,13 @@ class StreamingSpikeDetector:
             all_events = []
             chunk_generator = self._get_chunk_generator(audio_path)
             
-            # Create progress bar with more information and more frequent updates
+            # Setup progress bar
             pbar = tqdm(total=total_chunks, 
                        desc="Processing audio",
                        unit="chunk",
                        position=0,
                        leave=True,
-                       mininterval=0.1)  # Update at least every 0.1 seconds
+                       mininterval=0.1)  # Update every 0.1s
             
             try:
                 for chunk_index, chunk in enumerate(chunk_generator):
@@ -252,18 +252,18 @@ class StreamingSpikeDetector:
                         events = self._process_chunk(chunk, chunk_index, chunk_start_time)
                         all_events.extend(events)
                         
-                        # Save clips only if enabled
+                        # Save clips if requested - Format: python3 spike_detector.py --save_clips --input_audio path/to/audio.wav
                         if self.save_clips:
                             self._save_clips(chunk, events, chunk_start_time)
                         
-                        # Update progress bar with more info
+                        # Update progress
                         pbar.update(1)
                         pbar.set_postfix({
                             'spikes': len(events),
                             'total_spikes': len(all_events),
                             'position': f"{chunk_start_time:.1f}s"
                         })
-                        pbar.refresh()  # Force refresh the display
+                        pbar.refresh()  # Force update
                         
                     except Exception as e:
                         logger.error(f"Error processing chunk {chunk_index}: {str(e)}")
@@ -278,16 +278,14 @@ class StreamingSpikeDetector:
             logger.error(f"Error in process_file: {str(e)}")
             raise
     
-    def _save_clips(self, 
-                   chunk: np.ndarray,
-                   events: List[SpikeEvent],
-                   chunk_start_time: float):
-        """Save detected clips to files."""
+    def _save_clips(self, chunk: np.ndarray, events: List[SpikeEvent], chunk_start_time: float):
+        """Save detected clips as audio files"""
         if not self.save_clips:
             return
             
         for event in events:
             try:
+                # Calc sample indices for clip
                 start_sample = int((event.start_time - chunk_start_time) * self.sample_rate)
                 end_sample = int((event.end_time - chunk_start_time) * self.sample_rate)
                 
@@ -305,18 +303,18 @@ class StreamingSpikeDetector:
                 continue
 
 def process_single_file(args: Tuple[str, bool, float]) -> List[SpikeEvent]:
-    """Process a single file (for parallel processing)."""
+    """Process single file (for parallel processing)"""
     audio_path, save_clips, chunk_duration = args
     detector = StreamingSpikeDetector(save_clips=save_clips, chunk_duration=chunk_duration)
     return detector.process_file(audio_path)
 
 def save_events_to_json(events: List[SpikeEvent], output_path: str):
-    """Save spike events to a JSON file."""
+    """Save spike events to JSON file"""
     with open(output_path, 'w') as f:
         json.dump([event.to_dict() for event in events], f, indent=2)
 
 def main():
-    """Process audio files and detect spikes."""
+    """Main - process audio files and detect spikes"""
     import argparse
     
     parser = argparse.ArgumentParser(description='Detect spikes in audio files')
@@ -331,7 +329,7 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Prepare arguments for parallel processing
+    # Prepare args for parallel processing
     process_args = [(path, args.save_clips, args.chunk_duration) for path in args.audio_paths]
     
     # Process files in parallel
