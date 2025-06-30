@@ -68,29 +68,44 @@ class AudioDataset(Dataset):
         Returns:
             (spectrogram, label) tuple
         """
-        # Get clip info
-        row = self.clip_index.iloc[idx]
-        filename = row['filename']
-        label = row['label']
-        
-        # Load audio file
-        audio_path = self.clips_dir / filename
-        audio, sr = librosa.load(audio_path, sr=self.sample_rate)
-        
-        # Preprocess audio
-        audio = self._preprocess_audio(audio)
-        
-        # Apply augmentation if enabled
-        if self.augment:
-            audio = self._augment_audio(audio)
-        
-        # Convert to spectrogram
-        spectrogram = self._audio_to_spectrogram(audio)
-        
-        # Convert label to tensor
-        label_tensor = torch.tensor(self.label_map[label], dtype=torch.float32)
-        
-        return spectrogram, label_tensor
+        try:
+            # Get clip info
+            row = self.clip_index.iloc[idx]
+            filename = row['filename']
+            label = row['label']
+            
+            # Load audio file
+            audio_path = self.clips_dir / filename
+            if not audio_path.exists():
+                raise FileNotFoundError(f"Audio file not found: {audio_path}")
+            
+            audio, sr = librosa.load(audio_path, sr=self.sample_rate)
+            
+            # Check if audio is valid
+            if len(audio) == 0:
+                raise ValueError(f"Empty audio file: {filename}")
+            
+            # Preprocess audio
+            audio = self._preprocess_audio(audio)
+            
+            # Apply augmentation if enabled
+            if self.augment:
+                audio = self._augment_audio(audio)
+            
+            # Convert to spectrogram
+            spectrogram = self._audio_to_spectrogram(audio)
+            
+            # Convert label to tensor
+            label_tensor = torch.tensor(self.label_map[label], dtype=torch.float32)
+            
+            return spectrogram, label_tensor
+            
+        except Exception as e:
+            print(f"Error loading file {filename if 'filename' in locals() else 'unknown'}: {e}")
+            # Return a dummy sample to prevent training from crashing
+            dummy_spectrogram = torch.zeros(1, self.n_mels, 173)
+            dummy_label = torch.tensor(0.0, dtype=torch.float32)
+            return dummy_spectrogram, dummy_label
     
     def _preprocess_audio(self, audio: np.ndarray) -> np.ndarray:
         """
@@ -165,28 +180,39 @@ class AudioDataset(Dataset):
         Returns:
             spectrogram tensor (n_mels, time_frames)
         """
-        # Generate Mel spectrogram
-        mel_spec = librosa.feature.melspectrogram(
-            y=audio,
-            sr=self.sample_rate,
-            n_mels=self.n_mels,
-            n_fft=self.n_fft,
-            hop_length=self.hop_length
-        )
-        
-        # Convert to dB scale
-        mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
-        
-        # Normalize to [0, 1] range
-        mel_spec_norm = (mel_spec_db - mel_spec_db.min()) / (mel_spec_db.max() - mel_spec_db.min() + 1e-8)
-        
-        # Convert to tensor and add channel dimension
-        # CNNs expect 3D: (channels, height, width) but spectrogram is 2D
-        # Adding channel dim: (1, 128 freq bins, 173 time frames) - like grayscale image
-        spectrogram = torch.tensor(mel_spec_norm, dtype=torch.float32)
-        spectrogram = spectrogram.unsqueeze(0)  # Add channel dim: (1, n_mels, time_frames)
-        
-        return spectrogram
+        try:
+            # Generate Mel spectrogram
+            mel_spec = librosa.feature.melspectrogram(
+                y=audio,
+                sr=self.sample_rate,
+                n_mels=self.n_mels,
+                n_fft=self.n_fft,
+                hop_length=self.hop_length
+            )
+            
+            # Convert to dB scale
+            mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
+            
+            # Normalize to [0, 1] range with safe division
+            spec_min = mel_spec_db.min()
+            spec_max = mel_spec_db.max()
+            spec_range = spec_max - spec_min
+            
+            if spec_range < 1e-8:  # Avoid division by zero
+                mel_spec_norm = np.zeros_like(mel_spec_db)
+            else:
+                mel_spec_norm = (mel_spec_db - spec_min) / spec_range
+            
+            # Convert to tensor and add channel dimension
+            spectrogram = torch.tensor(mel_spec_norm, dtype=torch.float32)
+            spectrogram = spectrogram.unsqueeze(0)  # Add channel dim
+            
+            return spectrogram
+            
+        except Exception as e:
+            print(f"Error generating spectrogram: {e}")
+            # Return zero spectrogram as fallback
+            return torch.zeros(1, self.n_mels, 173, dtype=torch.float32)
 
 class AudioDataLoader:
     """Main data loader class for training"""
@@ -199,7 +225,8 @@ class AudioDataLoader:
                  sample_rate: int = 22050,
                  n_mels: int = 128,
                  augment_train: bool = True,
-                 num_workers: int = 4):
+                 num_workers: int = 4,
+                 pin_memory: bool = True):
         """
         Initialize data loader
         
@@ -212,6 +239,7 @@ class AudioDataLoader:
             n_mels: mel freq bins
             augment_train: enable augmentation for training
             num_workers: number of worker processes
+            pin_memory: enable pin memory for faster GPU transfer
         """
         self.clip_index_path = clip_index_path
         self.clips_dir = clips_dir
@@ -221,6 +249,7 @@ class AudioDataLoader:
         self.n_mels = n_mels
         self.augment_train = augment_train
         self.num_workers = num_workers
+        self.pin_memory = pin_memory
         
         # Create train/val datasets
         self.train_dataset, self.val_dataset = self._create_datasets()
@@ -281,7 +310,7 @@ class AudioDataLoader:
             batch_size=self.batch_size,
             shuffle=True,  # Shuffle for training
             num_workers=self.num_workers,
-            pin_memory=True,  # Faster data transfer to GPU
+            pin_memory=self.pin_memory,  # Faster data transfer to GPU
             drop_last=True  # Drop incomplete batches
         )
     
@@ -292,7 +321,7 @@ class AudioDataLoader:
             batch_size=self.batch_size,
             shuffle=False,  # No shuffle for validation
             num_workers=self.num_workers,
-            pin_memory=True,
+            pin_memory=self.pin_memory,
             drop_last=False  # Keep all validation samples
         )
     
@@ -376,7 +405,8 @@ def test_data_loader():
             clip_index_path="dataset/clip_index.csv",
             batch_size=4,  # Small batch for testing
             augment_train=True,
-            num_workers=0  # Disable multiprocessing to avoid hang
+            num_workers=0,  # Disable multiprocessing to avoid hang
+            pin_memory=True  # Enable pin memory for faster GPU transfer
         )
         
         print("✓ Data loader created successfully!")
