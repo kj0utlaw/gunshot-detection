@@ -241,8 +241,8 @@ def main():
             clips_dir="dataset/clips",
             batch_size=32,
             train_split=0.8,
-            num_workers=0,  # macOS compatibility
-            pin_memory=False  # macOS compatibility
+            num_workers=4,  # Recommended for GPU (Kaggle)
+            pin_memory=True  # Recommended for GPU (Kaggle)
         )
         
         # Device
