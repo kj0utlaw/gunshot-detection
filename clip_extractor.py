@@ -1,3 +1,7 @@
+"""
+This file is mostly one time use to prepare clips for training.
+It extracts gunshot sound clips from the provided datasets, ensuring a balanced set of positive and negative samples
+"""
 import os
 import csv
 import random
