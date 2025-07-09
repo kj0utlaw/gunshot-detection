@@ -15,6 +15,7 @@ from tqdm import tqdm
 import json
 from typing import Dict, List, Tuple, Optional
 import warnings
+from sklearn.preprocessing import StandardScaler
 
 # Suppress librosa warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='librosa')
@@ -83,42 +84,75 @@ class FeatureExtractor:
         for i, coef in enumerate(mfcc):
             features[f'mfcc_{i+1}'] = np.mean(coef)
             features[f'mfcc_{i+1}_std'] = np.std(coef)
+            # Handle missing values
+            if np.isnan(features[f'mfcc_{i+1}']):
+                features[f'mfcc_{i+1}'] = 0.0
+            if np.isnan(features[f'mfcc_{i+1}_std']):
+                features[f'mfcc_{i+1}_std'] = 0.0
         
         # Zero-crossing rate (volume & freq characteristics)
         zcr = librosa.feature.zero_crossing_rate(audio)
         features['zcr_mean'] = np.mean(zcr)
         features['zcr_std'] = np.std(zcr)
+        if np.isnan(features['zcr_mean']):
+            features['zcr_mean'] = 0.0
+        if np.isnan(features['zcr_std']):
+            features['zcr_std'] = 0.0
         
         # RMS energy (loudness)
         rms = librosa.feature.rms(y=audio)
         features['rms_mean'] = np.mean(rms)
         features['rms_std'] = np.std(rms)
+        if np.isnan(features['rms_mean']):
+            features['rms_mean'] = 0.0
+        if np.isnan(features['rms_std']):
+            features['rms_std'] = 0.0
         
         # Spectral centroid (brightness / pitch)
         centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)
         features['centroid_mean'] = np.mean(centroid)
         features['centroid_std'] = np.std(centroid)
+        if np.isnan(features['centroid_mean']):
+            features['centroid_mean'] = 0.0
+        if np.isnan(features['centroid_std']):
+            features['centroid_std'] = 0.0
         
         # Spectral bandwidth (freq spread)
         bandwidth = librosa.feature.spectral_bandwidth(y=audio, sr=sr)
         features['bandwidth_mean'] = np.mean(bandwidth)
         features['bandwidth_std'] = np.std(bandwidth)
+        if np.isnan(features['bandwidth_mean']):
+            features['bandwidth_mean'] = 0.0
+        if np.isnan(features['bandwidth_std']):
+            features['bandwidth_std'] = 0.0
         
         # Spectral rolloff (freq below 85% energy)
         rolloff = librosa.feature.spectral_rolloff(y=audio, sr=sr)
         features['rolloff_mean'] = np.mean(rolloff)
         features['rolloff_std'] = np.std(rolloff)
+        if np.isnan(features['rolloff_mean']):
+            features['rolloff_mean'] = 0.0
+        if np.isnan(features['rolloff_std']):
+            features['rolloff_std'] = 0.0
         
         # Additional features for gunshot detection
         # Spectral contrast (spectral peaks/valleys)
         contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
         features['contrast_mean'] = np.mean(contrast)
         features['contrast_std'] = np.std(contrast)
+        if np.isnan(features['contrast_mean']):
+            features['contrast_mean'] = 0.0
+        if np.isnan(features['contrast_std']):
+            features['contrast_std'] = 0.0
         
         # Chroma features (harmonic content)
         chroma = librosa.feature.chroma_stft(y=audio, sr=sr)
         features['chroma_mean'] = np.mean(chroma)
         features['chroma_std'] = np.std(chroma)
+        if np.isnan(features['chroma_mean']):
+            features['chroma_mean'] = 0.0
+        if np.isnan(features['chroma_std']):
+            features['chroma_std'] = 0.0
         
         return features
     
@@ -293,6 +327,36 @@ class FeatureExtractor:
             json.dump(stats, f, indent=2)
         
         print(f"Feature statistics saved to: {stats_file}")
+
+
+def load_features_for_ml(features_csv_path):
+    """
+    Load extracted features for ML model training
+
+    Args:
+        features_csv_path: path to extracted_features.csv
+        
+    Returns:
+        X: feature matrix (numpy array)
+        feature_names: list of feature column names
+        scaler: fitted StandardScaler
+    """
+    
+    # Load features
+    df = pd.read_csv(features_csv_path)
+    
+    # Select numerical features & exclude metadata columns
+    exclude_cols = ['filename', 'label', 'duration', 'sample_rate', 'spectrogram_shape']
+    feature_columns = [col for col in df.columns if col not in exclude_cols]
+    
+    # Extract feature matrix
+    X = df[feature_columns].values
+    
+    # Scale features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    return X_scaled, feature_columns, scaler
 
 
 def main():
