@@ -57,4 +57,32 @@ class IsolationForestDetector:
         print(f"Loaded {X_scaled.shape[0]} samples with {X_scaled.shape[1]} features")
         print(f"Feature names: {feature_names[:5]}...")  # Show first 5
         
-        return X_scaled, feature_names 
+        return X_scaled, feature_names
+    
+    def train(self, X_scaled: np.ndarray) -> np.ndarray:
+        """
+        Train Isolation Forest and get anomaly scores
+        
+        Args:
+            X_scaled: scaled feature matrix
+            
+        Returns:
+            anomaly_scores: array of anomaly scores (negative = more anomalous)
+        """
+        print("Training Isolation Forest...")
+        
+        # Create and fit the model
+        self.model = IsolationForest(
+            contamination=self.contamination,
+            random_state=self.random_state
+        )
+        
+        # Fit the model and get predictions
+        predictions = self.model.fit_predict(X_scaled)
+        
+        # Get anomaly scores (negative scores = more anomalous)
+        self.anomaly_scores = self.model.score_samples(X_scaled)
+        
+        print(f"Training complete! Found {np.sum(predictions == -1)} anomalies out of {len(predictions)} samples")
+        
+        return self.anomaly_scores 
