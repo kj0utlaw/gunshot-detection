@@ -86,3 +86,22 @@ class IsolationForestDetector:
         print(f"Training complete! Found {np.sum(predictions == -1)} anomalies out of {len(predictions)} samples")
         
         return self.anomaly_scores 
+
+    def predict(self, X_scaled: np.ndarray) -> np.ndarray:
+        """
+        Predict anomaly labels for the given data.
+        Returns: array of labels (-1 = anomaly, 1 = normal)
+        """
+        if self.model is None:
+            raise ValueError("Model not trained yet.")
+        return self.model.predict(X_scaled)
+
+if __name__ == "__main__":
+    # Example usage
+    features_csv = "features/extracted_features.csv"
+    detector = IsolationForestDetector(contamination=0.1)
+    X_scaled, feature_names = detector.load_data(features_csv)
+    detector.train(X_scaled)
+    labels = detector.predict(X_scaled)
+    print("Anomaly labels (first 20):", labels[:20])
+    print(f"Total anomalies detected: {(labels == -1).sum()} out of {len(labels)} samples") 
