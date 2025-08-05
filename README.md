@@ -41,8 +41,20 @@ ugr/
 ## 🚀 Quick Start
 
 ### Prerequisites
+
+**System Requirements:**
+- Python 3.8+
+- 4GB+ RAM recommended
+- Audio dataset in the `dataset/` folder
+
+**Install dependencies:**
 ```bash
 pip install torch torchvision librosa scikit-learn pandas numpy matplotlib
+```
+
+**Or use requirements.txt:**
+```bash
+pip install -r requirements.txt
 ```
 
 ### Model Files
@@ -51,7 +63,50 @@ The trained CNN model (`best_model.pth`) is not included in the repository due t
 2. Download the pre-trained model from [link to be provided]
 3. Contact the authors for model access
 
-### Training Models
+## 🚀 How to Use This System
+
+### Quick Start (Recommended)
+
+1. **Clone the repository**:
+```bash
+git clone https://github.com/kj0utlaw/gunshot-detection.git
+cd gunshot-detection
+```
+
+2. **Install dependencies**:
+```bash
+pip install torch torchvision librosa scikit-learn pandas numpy matplotlib
+```
+
+3. **Test the system** (interactive test runner):
+```bash
+python3 test_runner.py
+```
+
+4. **Run a quick test on a single file**:
+```bash
+python3 test_runner.py --file kp01_20151208_000000.wav --quick
+```
+
+### Test Runner Options
+
+The `test_runner.py` script provides an easy way to test the system:
+
+```bash
+# Quick test (50 clips)
+python3 test_runner.py --file filename.wav --quick
+
+# Custom threshold
+python3 test_runner.py --file filename.wav --threshold 0.8
+
+# Custom number of clips
+python3 test_runner.py --file filename.wav --max-clips 100
+
+# Show available files and options
+python3 test_runner.py
+```
+
+### Training Your Own Models
 
 1. **Train Isolation Forest**:
 ```bash
@@ -63,16 +118,61 @@ python3 train_iso_forest.py
 python3 train_cnn.py
 ```
 
-### Running Full Pipeline
+### Advanced Testing
 
-**Test single file**:
+**Test multiple files**:
 ```bash
-python3 test_pipeline.py
+python3 simple_test.py
 ```
 
-**Test entire dataset**:
+**Test entire dataset (104 files)**:
 ```bash
 python3 full_dataset_test.py
+```
+
+### Example Output
+
+When you run the test runner, you'll see output like this:
+
+```
+🔫 Gunshot Detection System - Test Runner
+==================================================
+🎯 Testing single file: kp01_20151208_000000.wav
+📊 Max clips: 300
+🎚️  Threshold: 0.9
+
+============================================================
+TESTING: kp01_20151208_000000.wav
+============================================================
+Ground truth: 7 gunshots
+Using 300 clips for testing
+Running feature extraction...
+Running Isolation Forest...
+Running CNN inference...
+
+CNN Results:
+Total clips processed: 300
+Gunshot predictions: 45
+Non-gunshot predictions: 255
+
+==================================================
+✅ TEST COMPLETED SUCCESSFULLY
+==================================================
+📁 File: kp01_20151208_000000.wav
+🎯 Ground Truth Gunshots: 7
+🔍 Predictions: 45
+✅ Estimated True Positives: 2
+❌ False Positives: 43
+❌ False Negatives: 5
+✅ True Negatives: 250
+
+📈 Performance Metrics:
+   Accuracy: 0.840
+   Precision: 0.044
+   Recall: 0.286
+   F1 Score: 0.077
+   FPR: 0.147
+   Specificity: 0.853
 ```
 
 ## 📊 Core Components
