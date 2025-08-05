@@ -1,0 +1,11 @@
+.DS_Store
+detected_clips/
+gunshots/
+spike_detection_results/
+*.zip
+*.wav
+clip_index.csv
+dataset/
+clip_index.csv
+file_list.md
+best_model.pth
